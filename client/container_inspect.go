@@ -51,3 +51,25 @@ func (cli *Client) ContainerInspectWithRaw(ctx context.Context, containerID stri
 	err = json.NewDecoder(rdr).Decode(&response)
 	return response, body, err
 }
+
+// ContainerInspectRaw returns the container's raw representation.
+func (cli *Client) ContainerInspectRaw(ctx context.Context, containerID string, getSize bool) ([]byte, error) {
+	if containerID == "" {
+		return nil, objectNotFoundError{object: "container", id: containerID}
+	}
+	query := url.Values{}
+	if getSize {
+		query.Set("size", "1")
+	}
+	serverResp, err := cli.get(ctx, "/containers/"+containerID+"/json", query, nil)
+	defer ensureReaderClosed(serverResp)
+	if err != nil {
+		return nil, wrapResponseError(err, serverResp, "container", containerID)
+	}
+
+	body, err := ioutil.ReadAll(serverResp.body)
+	if err != nil {
+		return nil, err
+	}
+	return body, err
+}

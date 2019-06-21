@@ -140,3 +140,49 @@ func TestContainerInspectNode(t *testing.T) {
 		t.Fatalf("expected `bar` for label `foo`")
 	}
 }
+
+func TestContainerInspectRaw(t *testing.T) {
+	expectedURL := "/containers/container_id/json"
+	client := &Client{
+		client: newMockClient(func(req *http.Request) (*http.Response, error) {
+			if !strings.HasPrefix(req.URL.Path, expectedURL) {
+				return nil, fmt.Errorf("Expected URL '%s', got '%s'", expectedURL, req.URL)
+			}
+			content, err := json.Marshal(types.ContainerJSON{
+				ContainerJSONBase: &types.ContainerJSONBase{
+					ID:    "container_id",
+					Image: "image",
+					Name:  "name",
+				},
+			})
+			if err != nil {
+				return nil, err
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(bytes.NewReader(content)),
+			}, nil
+		}),
+	}
+
+	out, err := client.ContainerInspectRaw(context.Background(), "container_id", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var r types.ContainerJSON
+	rdr := bytes.NewReader(out)
+	err = json.NewDecoder(rdr).Decode(&r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.ID != "container_id" {
+		t.Fatalf("expected `container_id`, got %s", r.ID)
+	}
+	if r.Image != "image" {
+		t.Fatalf("expected `image`, got %s", r.Image)
+	}
+	if r.Name != "name" {
+		t.Fatalf("expected `name`, got %s", r.Name)
+	}
+}
