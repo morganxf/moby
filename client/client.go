@@ -307,3 +307,12 @@ func (cli *Client) Dialer() func(context.Context) (net.Conn, error) {
 		return fallbackDial(cli.proto, cli.addr, resolveTLSConfig(cli.client.Transport))
 	}
 }
+
+// UpdateClientVersion updates the version string associated with this
+// instance of the Client.
+func (cli *Client) UpdateClientVersion(v string) {
+	if !cli.manualOverride {
+		cli.version = v
+	}
+
+}
